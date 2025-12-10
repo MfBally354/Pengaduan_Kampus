@@ -1,0 +1,31 @@
+CREATE DATABASE IF NOT EXISTS pengaduan_kampus;
+USE pengaduan_kampus;
+
+
+CREATE TABLE IF NOT EXISTS users (
+id INT AUTO_INCREMENT PRIMARY KEY,
+nama VARCHAR(100),
+email VARCHAR(100) UNIQUE,
+password VARCHAR(255),
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS pengaduan (
+id INT AUTO_INCREMENT PRIMARY KEY,
+nama VARCHAR(100),
+email VARCHAR(100),
+kategori VARCHAR(100),
+uraian TEXT,
+lampiran VARCHAR(255),
+status ENUM('pending','proses','done') DEFAULT 'pending',
+tanggal DATE,
+waktu TIME,
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- sample admin (password: admin123)
+INSERT INTO users (nama,email,password) VALUES
+('Admin','admin@kampus.com','$2y$10$UmclNTPgRQQqz8DIiYny7uDblRNBxR2uLl8PHjHh0PUDPnDRmBDvO')
+ON DUPLICATE KEY UPDATE nama=VALUES(nama);

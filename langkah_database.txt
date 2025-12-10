@@ -1,0 +1,11 @@
+Langkah Alur Menuju Database - Pengaduan Kampus
+--------------------------------------------------
+1. Buka XAMPP lalu aktifkan Apache dan MySQL.
+2. Buka http://localhost/phpmyadmin.
+3. Buat database baru bernama: pengaduan_kampus.
+4. Klik Import -> pilih file SQL ->(db sql) jalankan.
+5. Cek tabel: admin, mahasiswa, pengaduan.
+6. Pastikan file core/db.php terhubung ke database.
+7. Jalankan website:
+   - Mahasiswa: /mahasiswa/login.php
+   - Admin: /admin/login.php
