@@ -1,116 +1,151 @@
+<!-- FILE: detail.php -->
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-session_start();
+require_once 'db.php';
+requireLogin();
 
-// Cek login
-if (!isset($_SESSION['user_id'])) {
-    header('Location: login.php');
-    exit;
+$id = $_GET['id'] ?? 0;
+$user_id = getUserId();
+$role = getRole();
+
+// Ambil detail pengaduan
+$stmt = $conn->prepare("SELECT p.*, u.nama as nama_mahasiswa, u.email, 
+    u2.nama as nama_dosen 
+    FROM pengaduan p 
+    JOIN users u ON p.user_id = u.id 
+    LEFT JOIN users u2 ON p.tanggapan_by = u2.id 
+    WHERE p.id = ?");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows == 0) {
+    die("Pengaduan tidak ditemukan");
 }
 
-include "db.php";
+$pengaduan = $result->fetch_assoc();
 
-// Ambil ID dari URL
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-
-if ($id == 0) {
-    die("ID tidak valid!");
+// Cek akses - mahasiswa hanya bisa lihat pengaduan sendiri
+if ($role == 'mahasiswa' && $pengaduan['user_id'] != $user_id) {
+    die("Anda tidak memiliki akses ke pengaduan ini");
 }
-
-// Query pengaduan berdasarkan ID
-$sql = "SELECT * FROM pengaduan WHERE id = $id";
-$result = mysqli_query($conn, $sql);
-
-if (!$result) {
-    die("Query error: " . mysqli_error($conn));
-}
-
-if (mysqli_num_rows($result) == 0) {
-    die("Data pengaduan tidak ditemukan!");
-}
-
-$data = mysqli_fetch_assoc($result);
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Pengaduan</title>
-    <link rel="stylesheet" href="assets/styles.css">
+    <link rel="stylesheet" href="/assets/styles.css">
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f7fa; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { color: #333; margin-bottom: 20px; }
-        .detail-item { margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 5px; }
-        .detail-item strong { display: inline-block; width: 120px; color: #555; }
-        .status { padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-        .status.pending { background: #ffc107; color: #856404; }
-        .status.proses { background: #17a2b8; color: white; }
-        .status.done { background: #28a745; color: white; }
-        .back-btn { display: inline-block; margin-top: 20px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
-        .back-btn:hover { background: #0056b3; }
+        .detail-container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .detail-header {
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .info-row {
+            display: flex;
+            margin-bottom: 15px;
+        }
+        .info-label {
+            font-weight: 600;
+            width: 150px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .status-pending { background: #ffc107; color: white; }
+        .status-diproses { background: #17a2b8; color: white; }
+        .status-selesai { background: #28a745; color: white; }
+        .status-ditolak { background: #dc3545; color: white; }
+        .tanggapan-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+        .btn-back {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #6c757d;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .btn-tanggapi {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>Detail Pengaduan</h2>
-        
-        <div class="detail-item">
-            <strong>ID:</strong> <?= htmlspecialchars($data['id']) ?>
+    <?php include 'navbar.php'; ?>
+    
+    <div class="detail-container">
+        <div class="detail-header">
+            <h1><?= htmlspecialchars($pengaduan['judul']) ?></h1>
         </div>
         
-        <div class="detail-item">
-            <strong>Nama:</strong> <?= htmlspecialchars($data['nama']) ?>
-        </div>
-        
-        <div class="detail-item">
-            <strong>Email:</strong> <?= htmlspecialchars($data['email']) ?>
-        </div>
-        
-        <div class="detail-item">
-            <strong>Kategori:</strong> <?= htmlspecialchars($data['kategori']) ?>
-        </div>
-        
-        <div class="detail-item">
-            <strong>Tanggal:</strong> <?= htmlspecialchars($data['tanggal']) ?>
-        </div>
-        
-        <div class="detail-item">
-            <strong>Waktu:</strong> <?= htmlspecialchars($data['waktu']) ?>
-        </div>
-        
-        <div class="detail-item">
-            <strong>Status:</strong> 
-            <span class="status <?= $data['status'] ?>">
-                <?= strtoupper($data['status']) ?>
+        <div class="info-row">
+            <span class="info-label">Status:</span>
+            <span class="status-badge status-<?= $pengaduan['status'] ?>">
+                <?= ucfirst($pengaduan['status']) ?>
             </span>
         </div>
         
-        <div class="detail-item">
-            <strong>Uraian:</strong><br>
-            <div style="margin-top: 10px; padding: 15px; background: white; border: 1px solid #ddd; border-radius: 5px;">
-                <?= nl2br(htmlspecialchars($data['uraian'])) ?>
+        <div class="info-row">
+            <span class="info-label">Kategori:</span>
+            <span><?= ucfirst($pengaduan['kategori']) ?></span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">Pengadu:</span>
+            <span><?= htmlspecialchars($pengaduan['nama_mahasiswa']) ?></span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">Tanggal:</span>
+            <span><?= date('d F Y H:i', strtotime($pengaduan['created_at'])) ?></span>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Deskripsi Pengaduan</h3>
+            <p style="line-height: 1.8;"><?= nl2br(htmlspecialchars($pengaduan['deskripsi'])) ?></p>
+        </div>
+        
+        <?php if ($pengaduan['tanggapan']): ?>
+            <div class="tanggapan-section">
+                <h3>Tanggapan</h3>
+                <p style="line-height: 1.8;"><?= nl2br(htmlspecialchars($pengaduan['tanggapan'])) ?></p>
+                <small style="color: #666;">
+                    Ditanggapi oleh: <?= htmlspecialchars($pengaduan['nama_dosen'] ?? 'Admin') ?> 
+                    pada <?= date('d F Y H:i', strtotime($pengaduan['tanggapan_at'])) ?>
+                </small>
             </div>
-        </div>
+        <?php endif; ?>
         
-        <?php if (!empty($data['lampiran'])): ?>
-        <div class="detail-item">
-            <strong>Lampiran:</strong><br>
-            <a href="<?= htmlspecialchars($data['lampiran']) ?>" target="_blank" style="color: #007bff;">
-                📎 Lihat Lampiran
+        <?php if ($role == 'dosen' && !$pengaduan['tanggapan']): ?>
+            <a href="/dosen/beri_tanggapan.php?id=<?= $id ?>" class="btn-tanggapi">
+                Beri Tanggapan
             </a>
-        </div>
         <?php endif; ?>
         
-        <a href="pending.php" class="back-btn">← Kembali</a>
-        
-        <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
-        <a href="admin/update_status.php?id=<?= $data['id'] ?>" class="back-btn" style="background: #28a745;">
-            ✏️ Update Status
-        </a>
-        <?php endif; ?>
+        <a href="javascript:history.back()" class="btn-back">← Kembali</a>
     </div>
 </body>
 </html>

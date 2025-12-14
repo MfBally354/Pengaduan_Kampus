@@ -1,0 +1,55 @@
+/* FILE: assets/mahasiswa.css */
+.mahasiswa-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.mahasiswa-header {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    margin-bottom: 30px;
+}
+
+.mahasiswa-card {
+    background: white;
+    border-radius: 10px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s;
+}
+
+.mahasiswa-card:hover {
+    transform: translateY(-5px);
+}
+
+.quick-action {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.quick-action-btn {
+    flex: 1;
+    padding: 20px;
+    background: white;
+    border-radius: 10px;
+    text-align: center;
+    text-decoration: none;
+    color: #333;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s;
+}
+
+.quick-action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.quick-action-btn .icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+}
+

@@ -1,43 +1,58 @@
 <?php
-include 'db.php';
+require_once 'db.php';
+
+if (isLoggedIn()) {
+    redirect('/index.php');
+}
 
 $error = '';
+$success = '';
 
-if (isset($_POST['register'])) {
-    $nama = mysqli_real_escape_string($conn, $_POST['nama']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
-    $password = $_POST['password'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $nama = trim($_POST['nama'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    $role = $_POST['role'] ?? '';
+    $nim = trim($_POST['nim'] ?? '');
+    $nip = trim($_POST['nip'] ?? '');
+    $jurusan = trim($_POST['jurusan'] ?? '');
     
-    // Validasi input
-    if (empty($nama) || empty($email) || empty($password)) {
-        $error = 'Semua field harus diisi!';
+    // Validasi
+    if (empty($nama) || empty($email) || empty($password) || empty($role)) {
+        $error = 'Semua field wajib diisi';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Password tidak cocok';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password minimal 6 karakter';
+    } elseif ($role == 'mahasiswa' && empty($nim)) {
+        $error = 'NIM harus diisi untuk mahasiswa';
+    } elseif ($role == 'dosen' && empty($nip)) {
+        $error = 'NIP harus diisi untuk dosen';
     } else {
-        // Hash password
-        $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+        // Cek email sudah terdaftar
+        $stmt = $conn->prepare("SELECT id FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
         
-        // Cek apakah email sudah terdaftar
-        $cek = mysqli_query($conn, "SELECT * FROM users WHERE email='$email'");
-        
-        if (mysqli_num_rows($cek) > 0) {
-            $error = 'Email sudah terdaftar!';
+        if ($result->num_rows > 0) {
+            $error = 'Email sudah terdaftar';
         } else {
-            // Insert user baru
-            $sql = "INSERT INTO users (nama, email, password) VALUES ('$nama', '$email', '$hashed_password')";
+            // Hash password
+            $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             
-            if (mysqli_query($conn, $sql)) {
-                // Auto login setelah registrasi (opsional)
-                session_start();
-                $_SESSION['user_id'] = mysqli_insert_id($conn);
-                $_SESSION['username'] = $nama;
-                $_SESSION['email'] = $email;
-                $_SESSION['role'] = 'mahasiswa'; // Default role
-                
-                header('Location: dashboard.php');
-                exit;
+            // Insert user
+            $stmt = $conn->prepare("INSERT INTO users (nama, email, password, role, nim, nip, jurusan) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssssss", $nama, $email, $hashed_password, $role, $nim, $nip, $jurusan);
+            
+            if ($stmt->execute()) {
+                $success = 'Registrasi berhasil! Silakan login.';
             } else {
-                $error = 'Terjadi kesalahan: ' . mysqli_error($conn);
+                $error = 'Registrasi gagal. Coba lagi.';
             }
         }
+        $stmt->close();
     }
 }
 ?>
@@ -46,64 +61,151 @@ if (isset($_POST['register'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Akun - Eco Campus</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/styles.css">
+    <title>Register - Sistem Pengaduan Kampus</title>
+    <link rel="stylesheet" href="/assets/styles.css">
     <style>
-        * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter',sans-serif; }
-        body { background:#f5f7fa; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; }
-        .register-container { background:white; padding:48px; border-radius:20px; box-shadow:0 15px 35px rgba(0,0,0,0.1); width:100%; max-width:480px; }
-        .register-header { text-align:center; margin-bottom:32px; }
-        .register-header h1 { font-size:32px; color:#1f2937; margin-bottom:8px; }
-        .register-header p { color:#6b7280; }
-        .form-group { margin-bottom:20px; }
-        .form-group label { display:block; margin-bottom:8px; color:#374151; font-weight:500; }
-        .form-group input { width:100%; padding:14px 18px; border:2px solid #d1d5db; border-radius:10px; font-size:16px; transition:0.2s; }
-        .form-group input:focus { border-color:#2563eb; outline:none; }
-        .btn-register { width:100%; background:#10b981; color:white; border:none; padding:16px; border-radius:10px; font-size:16px; font-weight:600; transition:0.3s; margin-top:8px; }
-        .btn-register:hover { background:#059669; }
-        .error { background:#fee2e2; color:#dc2626; padding:12px; border-radius:8px; margin-bottom:20px; text-align:center; }
-        .links { text-align:center; margin-top:24px; }
-        .links a { color:#2563eb; text-decoration:none; }
-        .links a:hover { text-decoration:underline; }
-        .password-requirements { font-size:14px; color:#6b7280; margin-top:4px; }
+        .register-container {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .register-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .btn-register {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-register:hover {
+            background: #218838;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        .login-link {
+            text-align: center;
+            margin-top: 15px;
+        }
+        .conditional-field {
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="register-container">
-        <div class="register-header">
-            <h1>Daftar Akun Baru</h1>
-            <p>Bergabung dengan sistem pengaduan kampus</p>
-        </div>
+        <h2>Registrasi Akun</h2>
         
         <?php if ($error): ?>
-            <div class="error"><?php echo htmlspecialchars($error); ?></div>
+            <div class="error"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
         
-        <form method="POST" action="">
+        <?php if ($success): ?>
+            <div class="success"><?= htmlspecialchars($success) ?></div>
+        <?php endif; ?>
+        
+        <form method="POST" action="" id="registerForm">
             <div class="form-group">
-                <label for="nama">Nama Lengkap</label>
-                <input type="text" id="nama" name="nama" required autofocus>
+                <label>Nama Lengkap</label>
+                <input type="text" name="nama" required>
             </div>
             
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email" required>
+                <label>Email</label>
+                <input type="email" name="email" required>
             </div>
             
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="6">
-                <div class="password-requirements">Minimal 6 karakter</div>
+                <label>Role</label>
+                <select name="role" id="roleSelect" required>
+                    <option value="">Pilih Role</option>
+                    <option value="mahasiswa">Mahasiswa</option>
+                    <option value="dosen">Dosen</option>
+                    <!-- Admin tidak bisa register, harus ditambahkan manual ke database -->
+                </select>
             </div>
             
-            <button type="submit" name="register" class="btn-register">Daftar Sekarang</button>
+            <div class="form-group conditional-field" id="nimField">
+                <label>NIM</label>
+                <input type="text" name="nim">
+            </div>
+            
+            <div class="form-group conditional-field" id="nipField">
+                <label>NIP</label>
+                <input type="text" name="nip">
+            </div>
+            
+            <div class="form-group">
+                <label>Jurusan/Fakultas</label>
+                <input type="text" name="jurusan">
+            </div>
+            
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Konfirmasi Password</label>
+                <input type="password" name="confirm_password" required>
+            </div>
+            
+            <button type="submit" class="btn-register">Daftar</button>
         </form>
         
-        <div class="links">
-            <p>Sudah punya akun? <a href="login.php">Login di sini</a></p>
-            <p><a href="index.php">← Kembali ke Beranda</a></p>
+        <div class="login-link">
+            Sudah punya akun? <a href="/login.php">Login di sini</a>
         </div>
     </div>
+    
+    <script>
+        document.getElementById('roleSelect').addEventListener('change', function() {
+            const nimField = document.getElementById('nimField');
+            const nipField = document.getElementById('nipField');
+            
+            nimField.style.display = 'none';
+            nipField.style.display = 'none';
+            
+            if (this.value === 'mahasiswa') {
+                nimField.style.display = 'block';
+            } else if (this.value === 'dosen') {
+                nipField.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
