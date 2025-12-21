@@ -173,8 +173,8 @@ Dibuat dengan ❤️ oleh [Nama Anda]
 ## 📞 Kontak
 
 Jika ada pertanyaan atau saran, silakan hubungi:
-- Email: your.email@example.com
-- GitHub: [@yourusername](https://github.com/yourusername)
+- Email: iqbalguntur313@gmail.com
+- GitHub: https://github.com/MfBally354
 
 ---
 
