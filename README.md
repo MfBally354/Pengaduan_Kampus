@@ -168,7 +168,7 @@ Project ini menggunakan lisensi MIT. Lihat file `LICENSE` untuk detail lebih lan
 
 ## 👨‍💻 Pengembang
 
-Dibuat dengan ❤️ oleh [Nama Anda]
+Dibuat dengan ❤️ oleh Iqbal
 
 ## 📞 Kontak
 
