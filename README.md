@@ -1,6 +1,8 @@
 # 📢 Sistem Pengaduan Kampus
 
 Sistem manajemen pengaduan kampus berbasis web yang memungkinkan mahasiswa untuk menyampaikan keluhan, dosen untuk memberikan tanggapan, dan admin untuk mengelola seluruh proses pengaduan.
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/18c20582-dce9-4893-a193-2723bf6e540e" />
+
 
 ## 🌟 Fitur Utama
 
